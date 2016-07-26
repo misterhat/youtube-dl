@@ -4,12 +4,10 @@ from __future__ import unicode_literals
 import re
 
 from .common import InfoExtractor
-from ..compat import (
-    compat_urllib_parse,
-    compat_urllib_request,
-)
 from ..utils import (
     parse_duration,
+    sanitized_Request,
+    urlencode_postdata,
 )
 
 
@@ -43,15 +41,18 @@ class ShareSixIE(InfoExtractor):
     ]
 
     def _real_extract(self, url):
-        video_id = self._match_id(url)
+        mobj = re.match(self._VALID_URL, url)
+        video_id = mobj.group('id')
 
-        webpage = self._download_webpage(url, video_id)
+        fields = {
+            'method_free': 'Free'
+        }
+        post = urlencode_postdata(fields)
+        req = sanitized_Request(url, post)
+        req.add_header('Content-type', 'application/x-www-form-urlencoded')
 
-        code = self._search_regex(
-            r'\?code=([a-z0-9]+)">Free', webpage, 'free code')
-
-        webpage = self._download_webpage(url + '?code=' + code, video_id,
-            'Downloading video page')
+        webpage = self._download_webpage(req, video_id,
+                                         'Downloading video page')
 
         video_url = self._search_regex(
             r"var\slnk1\s=\s'([^']+)'", webpage, 'video URL')
